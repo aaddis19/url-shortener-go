@@ -13,7 +13,7 @@ var urls = make(map[string]string)
 func main() {
 	http.HandleFunc("/", handleForm)
 	http.HandleFunc("/shorten", handleShorten)
-	
+	http.HandleFunc("/short/", handleRedirect)
 
 	fmt.Println("URL Shortener is running on :3030")
 	http.ListenAndServe(":3030", nil)
@@ -25,7 +25,6 @@ func handleForm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Serve the HTML form
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprint(w, `
 		<!DOCTYPE html>
@@ -56,14 +55,11 @@ func handleShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate a unique shortened key for the original URL
 	shortKey := generateShortKey()
 	urls[shortKey] = originalURL
 
-	// Construct the full shortened URL
 	shortenedURL := fmt.Sprintf("http://localhost:3030/short/%s", shortKey)
 
-	// Serve the result page
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprint(w, `
 		<!DOCTYPE html>
@@ -87,14 +83,12 @@ func handleRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Retrieve the original URL from the `urls` map using the shortened key
 	originalURL, found := urls[shortKey]
 	if !found {
 		http.Error(w, "Shortened key not found", http.StatusNotFound)
 		return
 	}
 
-	// Redirect the user to the original URL
 	http.Redirect(w, r, originalURL, http.StatusMovedPermanently)
 }
 
