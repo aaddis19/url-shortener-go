@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -9,38 +11,26 @@ import (
 )
 
 var urls = make(map[string]string)
+var templates *template.Template
 
-func main() {
-	http.HandleFunc("/", handleForm)
-	http.HandleFunc("/shorten", handleShorten)
-	http.HandleFunc("/short/", handleRedirect)
-
-	fmt.Println("URL Shortener is running on :3030")
-	http.ListenAndServe(":3030", nil)
+func init() {
+	templates = template.Must(template.ParseGlob("templates/*.html"))
 }
 
-func handleForm(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		http.Redirect(w, r, "/shorten", http.StatusSeeOther)
-		return
-	}
+func main() {
+	http.HandleFunc("/", handleHome)
+	http.HandleFunc("/shorten", handleShorten)
+	http.HandleFunc("/short/", handleRedirect)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, `
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<title>URL Shortener</title>
-		</head>
-		<body>
-			<h2>URL Shortener</h2>
-			<form method="post" action="/shorten">
-				<input type="url" name="url" placeholder="Enter a URL" required>
-				<input type="submit" value="Shorten">
-			</form>
-		</body>
-		</html>
-	`)
+	fmt.Println("URL Shortener is running on :3030")
+	log.Fatal(http.ListenAndServe(":3030", nil))
+}
+
+func handleHome(w http.ResponseWriter, r *http.Request) {
+	if err := templates.ExecuteTemplate(w, "index.html", nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func handleShorten(w http.ResponseWriter, r *http.Request) {
@@ -57,23 +47,19 @@ func handleShorten(w http.ResponseWriter, r *http.Request) {
 
 	shortKey := generateShortKey()
 	urls[shortKey] = originalURL
+	shortenedURL := fmt.Sprintf("http://%s/short/%s", r.Host, shortKey)
 
-	shortenedURL := fmt.Sprintf("http://localhost:3030/short/%s", shortKey)
+	data := struct {
+		OriginalURL  string
+		ShortenedURL string
+	}{
+		OriginalURL:  originalURL,
+		ShortenedURL: shortenedURL,
+	}
 
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, `
-		<!DOCTYPE html>
-		<html>
-		<head>
-			<title>URL Shortener</title>
-		</head>
-		<body>
-			<h2>URL Shortener</h2>
-			<p>Original URL: `, originalURL, `</p>
-			<p>Shortened URL: <a href="`, shortenedURL, `">`, shortenedURL, `</a></p>
-		</body>
-		</html>
-	`)
+	if err := templates.ExecuteTemplate(w, "result.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func handleRedirect(w http.ResponseWriter, r *http.Request) {

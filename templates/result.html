@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>URL Shortener - Result</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>URL Shortener - Result</h1>
+      <div class="result">
+        <p><strong>Original URL:</strong> {{.OriginalURL}}</p>
+        <p>
+          <strong>Shortened URL:</strong>
+          <a href="{{.ShortenedURL}}">{{.ShortenedURL}}</a>
+        </p>
+      </div>
+      <a href="/" class="button">Shorten Another URL</a>
+    </div>
+  </body>
+</html>
